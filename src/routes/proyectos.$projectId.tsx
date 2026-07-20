@@ -52,7 +52,7 @@ function fmtDate(iso: string) {
 function ProjectOverview() {
   useTasksVersion();
   const { project } = Route.useLoaderData();
-  const area = AREAS[project.areaId];
+  const area = AREAS[project.areaId as keyof typeof AREAS];
   const rootTasks = getRootProjectTasks(project.id);
   const pct = projectProgress(project.id);
   const activeTask = project.activeTaskId ? getTask(project.activeTaskId) : undefined;
