@@ -8,6 +8,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { EmptyState } from "@/components/EmptyState";
 import { TaskFormDialog } from "@/components/TaskFormDialog";
 import { ProjectFormDialog } from "@/components/ProjectFormDialog";
+import { AIPanel } from "@/components/AIPanel";
 import {
   useAreas,
   useProject,
@@ -16,7 +17,7 @@ import {
   useUpdateProject,
   projectProgressPct,
 } from "@/lib/data";
-import { ArrowLeft, Archive, Pencil, Plus, Check, RotateCcw, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Archive, Pencil, Plus, Check, RotateCcw, CheckCircle2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
@@ -46,6 +47,7 @@ function ProjectOverview() {
   const [editOpen, setEditOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [confirmArchive, setConfirmArchive] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
 
   if (pl) {
     return <AppShell><div className="rounded-2xl border-[1.5px] border-ink bg-white p-6">Cargando…</div></AppShell>;
@@ -98,6 +100,9 @@ function ProjectOverview() {
             </button>
             <button onClick={() => setAddOpen(true)} className="press inline-flex items-center gap-2 rounded-full border-[1.5px] border-ink bg-ink px-4 py-2 text-sm font-semibold text-background">
               <Plus className="h-4 w-4" /> Añadir tarea
+            </button>
+            <button onClick={() => setAiOpen(true)} className="press inline-flex items-center gap-2 rounded-full border-[1.5px] border-ink bg-white px-4 py-2 text-sm font-semibold text-ink">
+              <Sparkles className="h-4 w-4" /> Generar con IA
             </button>
             {project.status === "active" ? (
               <>
@@ -169,6 +174,7 @@ function ProjectOverview() {
 
       <ProjectFormDialog open={editOpen} onOpenChange={setEditOpen} project={project} />
       <TaskFormDialog open={addOpen} onOpenChange={setAddOpen} initialProjectId={project.id} initialAreaId={project.area_id} />
+      <AIPanel open={aiOpen} onOpenChange={setAiOpen} scope={{ kind: "project", projectId: project.id, projectName: project.name }} />
 
       <AlertDialog open={confirmArchive} onOpenChange={setConfirmArchive}>
         <AlertDialogContent>

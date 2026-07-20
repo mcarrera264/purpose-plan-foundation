@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { ChevronRight, Plus, MoreVertical, Archive, Pencil } from "lucide-react";
+import { ChevronRight, Plus, MoreVertical, Archive, Pencil, Sparkles } from "lucide-react";
 import { TaskRow } from "./TaskRow";
 import { taskChildren, useArchiveTask, type TaskRow as Task } from "@/lib/data";
 import { TaskFormDialog } from "./TaskFormDialog";
+import { AIPanel } from "./AIPanel";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 
@@ -22,9 +23,11 @@ function TaskTreeNode({ task, allTasks, level }: { task: Task; allTasks: Task[];
   const [open, setOpen] = useState(true);
   const [editing, setEditing] = useState(false);
   const [addingChild, setAddingChild] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
   const archive = useArchiveTask();
   const hasChildren = children.length > 0;
   const canAddChild = level < 2;
+  const canDecompose = level < 2;
 
   return (
     <div>
@@ -69,6 +72,11 @@ function TaskTreeNode({ task, allTasks, level }: { task: Task; allTasks: Task[];
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onSelect={() => setEditing(true)}><Pencil className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>
+              {canDecompose && (
+                <DropdownMenuItem onSelect={() => setAiOpen(true)}>
+                  <Sparkles className="mr-2 h-4 w-4" />Desglosar con IA
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 onSelect={async () => {
                   await archive.mutateAsync({ id: task.id, archived: true });
@@ -97,6 +105,7 @@ function TaskTreeNode({ task, allTasks, level }: { task: Task; allTasks: Task[];
         initialProjectId={task.project_id}
         initialAreaId={task.area_id}
       />
+      <AIPanel open={aiOpen} onOpenChange={setAiOpen} scope={{ kind: "task", taskId: task.id, taskTitle: task.title }} />
     </div>
   );
 }

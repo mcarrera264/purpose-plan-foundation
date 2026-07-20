@@ -16,44 +16,91 @@ export type Database = {
     Tables: {
       ai_suggestion_batches: {
         Row: {
+          attempt_number: number | null
+          capability: string | null
+          completed_at: string | null
           created_at: string
+          extra_context: string | null
+          failure_code: string | null
           id: string
           model: string | null
+          notice: string | null
+          parent_task_id: string | null
           project_id: string | null
           prompt_version: string | null
+          request_id: string | null
           schema_version: string | null
-          status: Database["public"]["Enums"]["ai_batch_status"]
+          started_at: string | null
+          status: string
+          supersedes_batch_id: string | null
+          target_depth: number | null
           task_id: string | null
           user_id: string
         }
         Insert: {
+          attempt_number?: number | null
+          capability?: string | null
+          completed_at?: string | null
           created_at?: string
+          extra_context?: string | null
+          failure_code?: string | null
           id?: string
           model?: string | null
+          notice?: string | null
+          parent_task_id?: string | null
           project_id?: string | null
           prompt_version?: string | null
+          request_id?: string | null
           schema_version?: string | null
-          status?: Database["public"]["Enums"]["ai_batch_status"]
+          started_at?: string | null
+          status?: string
+          supersedes_batch_id?: string | null
+          target_depth?: number | null
           task_id?: string | null
           user_id: string
         }
         Update: {
+          attempt_number?: number | null
+          capability?: string | null
+          completed_at?: string | null
           created_at?: string
+          extra_context?: string | null
+          failure_code?: string | null
           id?: string
           model?: string | null
+          notice?: string | null
+          parent_task_id?: string | null
           project_id?: string | null
           prompt_version?: string | null
+          request_id?: string | null
           schema_version?: string | null
-          status?: Database["public"]["Enums"]["ai_batch_status"]
+          started_at?: string | null
+          status?: string
+          supersedes_batch_id?: string | null
+          target_depth?: number | null
           task_id?: string | null
           user_id?: string
         }
         Relationships: [
           {
+            foreignKeyName: "ai_suggestion_batches_parent_task_id_fkey"
+            columns: ["parent_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "ai_suggestion_batches_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_suggestion_batches_supersedes_batch_id_fkey"
+            columns: ["supersedes_batch_id"]
+            isOneToOne: false
+            referencedRelation: "ai_suggestion_batches"
             referencedColumns: ["id"]
           },
           {
@@ -67,41 +114,71 @@ export type Database = {
       }
       ai_suggestions: {
         Row: {
+          accepted_at: string | null
           batch_id: string
           created_at: string
           description: string | null
+          duplicate_task_id: string | null
+          edited_description: string | null
+          edited_title: string | null
           estimate: string | null
           id: string
           idempotency_key: string | null
+          is_duplicate: boolean
+          original_description: string | null
+          original_title: string | null
+          position: number | null
+          rejected_at: string | null
           result_task_id: string | null
           smart_rationale: string | null
-          status: Database["public"]["Enums"]["ai_suggestion_status"]
+          status: string
+          suggested_depth: number | null
           title: string
           updated_at: string
         }
         Insert: {
+          accepted_at?: string | null
           batch_id: string
           created_at?: string
           description?: string | null
+          duplicate_task_id?: string | null
+          edited_description?: string | null
+          edited_title?: string | null
           estimate?: string | null
           id?: string
           idempotency_key?: string | null
+          is_duplicate?: boolean
+          original_description?: string | null
+          original_title?: string | null
+          position?: number | null
+          rejected_at?: string | null
           result_task_id?: string | null
           smart_rationale?: string | null
-          status?: Database["public"]["Enums"]["ai_suggestion_status"]
+          status?: string
+          suggested_depth?: number | null
           title: string
           updated_at?: string
         }
         Update: {
+          accepted_at?: string | null
           batch_id?: string
           created_at?: string
           description?: string | null
+          duplicate_task_id?: string | null
+          edited_description?: string | null
+          edited_title?: string | null
           estimate?: string | null
           id?: string
           idempotency_key?: string | null
+          is_duplicate?: boolean
+          original_description?: string | null
+          original_title?: string | null
+          position?: number | null
+          rejected_at?: string | null
           result_task_id?: string | null
           smart_rationale?: string | null
-          status?: Database["public"]["Enums"]["ai_suggestion_status"]
+          status?: string
+          suggested_depth?: number | null
           title?: string
           updated_at?: string
         }
@@ -111,6 +188,13 @@ export type Database = {
             columns: ["batch_id"]
             isOneToOne: false
             referencedRelation: "ai_suggestion_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_suggestions_duplicate_task_id_fkey"
+            columns: ["duplicate_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
           {
