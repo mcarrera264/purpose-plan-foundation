@@ -47,6 +47,7 @@ function ProjectOverview() {
   const [editOpen, setEditOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [confirmArchive, setConfirmArchive] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
 
   if (pl) {
     return <AppShell><div className="rounded-2xl border-[1.5px] border-ink bg-white p-6">Cargando…</div></AppShell>;
