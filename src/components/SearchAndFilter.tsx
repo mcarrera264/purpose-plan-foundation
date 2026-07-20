@@ -1,22 +1,23 @@
 import { Search, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
-import { AREA_LIST, type AreaId } from "@/lib/mock-data";
-import { AreaChip } from "./AreaChip";
+import { useAreas, type AreaRow } from "@/lib/data";
+import { AreaIconByName, areaColor, areaIconName } from "@/lib/area-visuals";
 
 export function SearchAndFilter({
   query,
   onQueryChange,
-  activeAreas,
-  onToggleArea,
-  placeholder = "Buscar tarea o proyecto",
+  activeAreaIds,
+  onToggleAreaId,
+  placeholder = "Buscar",
 }: {
   query: string;
   onQueryChange: (v: string) => void;
-  activeAreas: Set<AreaId>;
-  onToggleArea: (id: AreaId) => void;
+  activeAreaIds: Set<string>;
+  onToggleAreaId: (id: string) => void;
   placeholder?: string;
 }) {
   const [showFilters, setShowFilters] = useState(false);
+  const { data: areas = [] } = useAreas();
   return (
     <div className="mb-6 flex flex-col gap-3">
       <div className="flex items-center gap-2">
@@ -43,11 +44,28 @@ export function SearchAndFilter({
       </div>
       {showFilters ? (
         <div className="animate-expand flex flex-wrap gap-2">
-          {AREA_LIST.map((a) => (
-            <AreaChip key={a.id} area={a} active={activeAreas.has(a.id)} onClick={() => onToggleArea(a.id)} />
+          {areas.map((a) => (
+            <AreaChipButton key={a.id} area={a} active={activeAreaIds.has(a.id)} onClick={() => onToggleAreaId(a.id)} />
           ))}
         </div>
       ) : null}
     </div>
+  );
+}
+
+function AreaChipButton({ area, active, onClick }: { area: AreaRow; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "press inline-flex items-center gap-2 rounded-full border-[1.5px] px-3 py-1.5 text-xs font-semibold",
+        active ? "border-ink bg-ink text-background" : "border-ink text-ink",
+      ].join(" ")}
+      style={active ? undefined : { backgroundColor: areaColor(area) }}
+    >
+      <AreaIconByName name={areaIconName(area)} className="h-3.5 w-3.5" />
+      <span>{area.name}</span>
+    </button>
   );
 }
