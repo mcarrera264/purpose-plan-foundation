@@ -101,6 +101,9 @@ function ProjectOverview() {
             <button onClick={() => setAddOpen(true)} className="press inline-flex items-center gap-2 rounded-full border-[1.5px] border-ink bg-ink px-4 py-2 text-sm font-semibold text-background">
               <Plus className="h-4 w-4" /> Añadir tarea
             </button>
+            <button onClick={() => setAiOpen(true)} className="press inline-flex items-center gap-2 rounded-full border-[1.5px] border-ink bg-white px-4 py-2 text-sm font-semibold text-ink">
+              <Sparkles className="h-4 w-4" /> Generar con IA
+            </button>
             {project.status === "active" ? (
               <>
                 <button onClick={() => setStatus("completed")} className="press inline-flex items-center gap-2 rounded-full border-[1.5px] border-ink bg-white px-4 py-2 text-sm font-semibold text-ink">
