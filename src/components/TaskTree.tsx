@@ -72,6 +72,11 @@ function TaskTreeNode({ task, allTasks, level }: { task: Task; allTasks: Task[];
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onSelect={() => setEditing(true)}><Pencil className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>
+              {canDecompose && (
+                <DropdownMenuItem onSelect={() => setAiOpen(true)}>
+                  <Sparkles className="mr-2 h-4 w-4" />Desglosar con IA
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 onSelect={async () => {
                   await archive.mutateAsync({ id: task.id, archived: true });
