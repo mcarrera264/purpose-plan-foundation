@@ -1,14 +1,18 @@
 import { Check, Clock } from "lucide-react";
-import type { Task } from "@/lib/mock-data";
-import { AREAS, getProject } from "@/lib/mock-data";
-import { toggleTask, useTaskStatus } from "@/lib/task-store";
-import { AreaIcon } from "./AreaChip";
+import { AreaIconByName, areaColor, areaIconName } from "@/lib/area-visuals";
+import { useAreas, useProjects, useToggleTaskStatus, type TaskRow as Task } from "@/lib/data";
 
-function formatDate(iso?: string, time?: string) {
-  if (!iso) return "Sin programar";
-  const d = new Date(iso);
+function formatWhen(date: string | null, start: string | null) {
+  if (!date) return "Sin programar";
+  const d = new Date(date + "T00:00:00");
   const label = d.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
-  return time ? `${label}, ${time}` : label;
+  if (start) {
+    const t = new Date(start);
+    const hh = String(t.getHours()).padStart(2, "0");
+    const mm = String(t.getMinutes()).padStart(2, "0");
+    return `${label}, ${hh}:${mm}`;
+  }
+  return label;
 }
 
 export function TaskRow({
@@ -20,24 +24,27 @@ export function TaskRow({
   showProject?: boolean;
   indent?: number;
 }) {
-  const status = useTaskStatus(task.id);
-  const area = AREAS[task.areaId];
-  const project = task.projectId ? getProject(task.projectId) : undefined;
-  const overdue = status !== "completed" && task.date && new Date(task.date) < new Date(new Date().toDateString());
-  const completed = status === "completed";
+  const { data: areas = [] } = useAreas(true);
+  const { data: projects = [] } = useProjects({ status: "all" });
+  const toggle = useToggleTaskStatus();
+  const area = areas.find((a) => a.id === task.area_id) ?? null;
+  const project = task.project_id ? projects.find((p) => p.id === task.project_id) : undefined;
+
+  const completed = task.status === "done";
+  const overdue = !completed && task.scheduled_date && task.scheduled_date < new Date().toISOString().slice(0, 10);
 
   return (
     <div
       className="press group flex items-center gap-3 rounded-2xl border-[1.5px] border-ink p-3 transition"
       style={{
-        backgroundColor: completed ? "#ffffff" : area.color,
+        backgroundColor: completed ? "#ffffff" : areaColor(area),
         marginLeft: indent * 20,
         opacity: completed ? 0.75 : 1,
       }}
     >
       <button
         type="button"
-        onClick={() => toggleTask(task.id)}
+        onClick={() => toggle.mutate({ id: task.id, next: completed ? "todo" : "done" })}
         aria-label={completed ? "Marcar como pendiente" : "Marcar como completada"}
         aria-pressed={completed}
         className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-[1.5px] border-ink bg-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
@@ -46,7 +53,7 @@ export function TaskRow({
       </button>
 
       <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border-[1.5px] border-ink bg-white/70">
-        <AreaIcon areaId={task.areaId} className="h-4 w-4" />
+        <AreaIconByName name={areaIconName(area)} />
       </div>
 
       <div className="min-w-0 flex-1">
@@ -56,7 +63,7 @@ export function TaskRow({
         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-ink/70">
           <span className="inline-flex items-center gap-1">
             <Clock className="h-3 w-3" />
-            {formatDate(task.date, task.time)}
+            {formatWhen(task.scheduled_date, task.scheduled_start)}
           </span>
           {showProject && project ? (
             <>
