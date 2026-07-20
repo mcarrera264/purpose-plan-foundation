@@ -23,9 +23,11 @@ function TaskTreeNode({ task, allTasks, level }: { task: Task; allTasks: Task[];
   const [open, setOpen] = useState(true);
   const [editing, setEditing] = useState(false);
   const [addingChild, setAddingChild] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
   const archive = useArchiveTask();
   const hasChildren = children.length > 0;
   const canAddChild = level < 2;
+  const canDecompose = level < 2;
 
   return (
     <div>
