@@ -121,22 +121,6 @@ export function AccountMenu() {
         />
       )}
     </>
-        <ConfirmDialog
-          title="¿Cerrar sesión de invitado?"
-          description="Perderás el acceso a los datos creados como invitado en este dispositivo. Puedes guardar tu cuenta antes de cerrar sesión."
-          confirmLabel="Cerrar sesión"
-          onConfirm={async () => {
-            setConfirmSignOut(false);
-            await signOut();
-          }}
-          onCancel={() => setConfirmSignOut(false)}
-          onSaveInstead={() => {
-            setConfirmSignOut(false);
-            setSaveOpen(true);
-          }}
-        />
-      )}
-    </>
   );
 }
 
