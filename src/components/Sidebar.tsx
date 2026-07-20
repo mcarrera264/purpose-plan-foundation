@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, FolderKanban, ListChecks, CalendarDays, Trophy, Plus, User } from "lucide-react";
+import { Home, FolderKanban, ListChecks, CalendarDays, Trophy, Plus } from "lucide-react";
 import { CreateMenu } from "./CreateMenu";
+import { AccountMenu } from "./AccountMenu";
 
 const items = [
   { to: "/", label: "Inicio", icon: Home, exact: true },
