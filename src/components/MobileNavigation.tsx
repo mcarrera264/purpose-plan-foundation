@@ -2,14 +2,13 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { Home, ListChecks, CalendarDays, Trophy, Plus, FolderKanban } from "lucide-react";
 import { CreateMenu } from "./CreateMenu";
 
-type NavItemDef = { to: string; label: string; icon: typeof Home; exact?: boolean };
-const items: NavItemDef[] = [
+const items = [
   { to: "/", label: "Inicio", icon: Home, exact: true },
-  { to: "/proyectos", label: "Proyectos", icon: FolderKanban },
-  { to: "/tareas", label: "Tareas", icon: ListChecks },
-  { to: "/calendario", label: "Calendario", icon: CalendarDays },
-  { to: "/progreso", label: "Progreso", icon: Trophy },
-];
+  { to: "/proyectos", label: "Proyectos", icon: FolderKanban, exact: false },
+  { to: "/tareas", label: "Tareas", icon: ListChecks, exact: false },
+  { to: "/calendario", label: "Calendario", icon: CalendarDays, exact: false },
+  { to: "/progreso", label: "Progreso", icon: Trophy, exact: false },
+] as const;
 
 export function MobileNavigation() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
