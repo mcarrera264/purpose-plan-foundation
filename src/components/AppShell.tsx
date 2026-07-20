@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
 import { MobileNavigation } from "./MobileNavigation";
+import { MobileAccountButton } from "./MobileAccountButton";
 import { AuthGate } from "./AuthGate";
 import { GuestBanner } from "./GuestBanner";
 
@@ -18,6 +19,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </main>
         </div>
         <MobileNavigation />
+        <MobileAccountButton />
       </div>
     </AuthGate>
   );
