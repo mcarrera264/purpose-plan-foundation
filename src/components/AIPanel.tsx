@@ -234,9 +234,19 @@ function SuggestionReview({
         };
       });
       const res = await accept.mutateAsync({ batchId, items });
-      const ok = res.results.filter((r) => r.ok).length;
+      const ok = res.results.filter((r) => r.ok && !r.alreadyAccepted).length;
+      const already = res.results.filter((r) => r.alreadyAccepted).length;
       const dups = res.results.filter((r) => r.error === "duplicate").length;
-      toast.success(`${ok} tareas creadas${dups ? `, ${dups} omitidas por duplicado` : ""}.`);
+      const errs = res.results.filter((r) => !r.ok && r.error !== "duplicate").length;
+      const parts: string[] = [];
+      if (ok) parts.push(`${ok} creadas`);
+      if (already) parts.push(`${already} ya aceptadas`);
+      if (dups) parts.push(`${dups} duplicadas`);
+      if (errs) parts.push(`${errs} con error`);
+      const msg = parts.join(" · ") || "Sin cambios";
+      if (errs > 0 && ok === 0) toast.error(msg);
+      else if (errs > 0 || dups > 0) toast.warning(msg);
+      else toast.success(msg);
     } catch (e) {
       toast.error((e as Error).message);
     }

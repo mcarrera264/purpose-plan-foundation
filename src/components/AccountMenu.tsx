@@ -1,15 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { User, LogOut, Save, X } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { User, LogOut, Save, X, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
+import { deleteMyAccountData } from "@/lib/ai.functions";
 
 export function AccountMenu() {
   const { user, isGuest } = useAuth();
   const navigate = useNavigate();
   const [saveOpen, setSaveOpen] = useState(false);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const deleteFn = useServerFn(deleteMyAccountData);
 
   const displayName =
     (user?.user_metadata?.display_name as string | undefined) ??
@@ -20,6 +25,19 @@ export function AccountMenu() {
   async function signOut() {
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
+  }
+
+  async function deleteAccount() {
+    setDeleting(true);
+    try {
+      await deleteFn();
+      toast.success("Tu información se eliminó. Cerrando sesión…");
+      await supabase.auth.signOut();
+      navigate({ to: "/auth", replace: true });
+    } catch (e) {
+      toast.error("No pudimos eliminar tus datos. Intenta de nuevo.");
+      setDeleting(false);
+    }
   }
 
   return (
@@ -63,6 +81,17 @@ export function AccountMenu() {
           <LogOut className="h-3.5 w-3.5" />
           Cerrar sesión
         </button>
+
+        {!isGuest && (
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(true)}
+            className="press inline-flex h-9 w-full items-center justify-center gap-2 rounded-full border-[1.5px] border-transparent text-xs font-medium text-ink/60 hover:border-red-500 hover:text-red-600"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Eliminar mi cuenta
+          </button>
+        )}
       </div>
 
       {saveOpen && <SaveAccountDialog onClose={() => setSaveOpen(false)} />}
@@ -80,6 +109,15 @@ export function AccountMenu() {
             setConfirmSignOut(false);
             setSaveOpen(true);
           }}
+        />
+      )}
+      {confirmDelete && (
+        <ConfirmDialog
+          title="¿Eliminar toda tu información?"
+          description="Se borrarán tus áreas, proyectos, tareas y sugerencias de IA. Esta acción no se puede deshacer."
+          confirmLabel={deleting ? "Eliminando…" : "Sí, eliminar todo"}
+          onConfirm={() => { setConfirmDelete(false); void deleteAccount(); }}
+          onCancel={() => setConfirmDelete(false)}
         />
       )}
     </>
