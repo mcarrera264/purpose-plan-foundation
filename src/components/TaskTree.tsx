@@ -105,6 +105,7 @@ function TaskTreeNode({ task, allTasks, level }: { task: Task; allTasks: Task[];
         initialProjectId={task.project_id}
         initialAreaId={task.area_id}
       />
+      <AIPanel open={aiOpen} onOpenChange={setAiOpen} scope={{ kind: "task", taskId: task.id, taskTitle: task.title }} />
     </div>
   );
 }
