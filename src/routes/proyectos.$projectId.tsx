@@ -1,106 +1,118 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { TaskTree } from "@/components/TaskTree";
 import { ProgressBar } from "@/components/ProgressBar";
-import { AreaChip, AreaIcon } from "@/components/AreaChip";
+import { AreaIconByName, areaColor, areaIconName } from "@/lib/area-visuals";
 import { StatusBadge } from "@/components/StatusBadge";
-import { AREAS, PROJECTS, getRootProjectTasks, getTask, projectProgress } from "@/lib/mock-data";
-import { useTasksVersion } from "@/lib/task-store";
-import { ArrowLeft, Archive, Pencil, Plus, Check } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
+import { TaskFormDialog } from "@/components/TaskFormDialog";
+import { ProjectFormDialog } from "@/components/ProjectFormDialog";
+import {
+  useAreas,
+  useProject,
+  useProjectTasks,
+  useToggleTaskStatus,
+  useUpdateProject,
+  projectProgressPct,
+} from "@/lib/data";
+import { ArrowLeft, Archive, Pencil, Plus, Check, RotateCcw, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/proyectos/$projectId")({
-  loader: ({ params }) => {
-    const project = PROJECTS.find((p) => p.id === params.projectId);
-    if (!project) throw notFound();
-    return { project };
-  },
-  head: ({ loaderData }) => ({
+  head: ({ params }) => ({
     meta: [
-      { title: loaderData ? `${loaderData.project.name} · Purpose Plan` : "Proyecto · Purpose Plan" },
-      {
-        name: "description",
-        content: loaderData?.project.description ?? "Detalle de proyecto.",
-      },
+      { title: "Proyecto · Purpose Plan" },
+      { name: "description", content: `Detalle del proyecto ${params.projectId}` },
     ],
   }),
-  errorComponent: ({ error }) => (
-    <AppShell>
-      <div className="rounded-2xl border-[1.5px] border-ink bg-white p-6">
-        <h1 className="text-xl font-bold text-ink">No se pudo cargar el proyecto</h1>
-        <p className="mt-2 text-sm text-text-secondary">{error.message}</p>
-      </div>
-    </AppShell>
-  ),
-  notFoundComponent: () => (
-    <AppShell>
-      <div className="rounded-2xl border-[1.5px] border-ink bg-white p-6">
-        <h1 className="text-xl font-bold text-ink">Proyecto no encontrado</h1>
-        <Link to="/proyectos" className="mt-4 inline-flex text-sm font-semibold text-ink underline">
-          Volver a Proyectos
-        </Link>
-      </div>
-    </AppShell>
-  ),
   component: ProjectOverview,
 });
 
-function fmtDate(iso: string) {
+function fmtDate(iso: string | null) {
+  if (!iso) return "Sin horizonte";
   return new Date(iso).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
 }
 
 function ProjectOverview() {
-  useTasksVersion();
-  const { project } = Route.useLoaderData() as { project: import("@/lib/mock-data").Project };
-  const area = AREAS[project.areaId as keyof typeof AREAS];
-  const rootTasks = getRootProjectTasks(project.id);
-  const pct = projectProgress(project.id);
-  const activeTask = project.activeTaskId ? getTask(project.activeTaskId) : undefined;
+  const { projectId } = Route.useParams();
+  const navigate = useNavigate();
+  const { data: project, isLoading: pl } = useProject(projectId);
+  const { data: tasks = [], isLoading: tl } = useProjectTasks(projectId);
+  const { data: areas = [] } = useAreas(true);
+  const updateProject = useUpdateProject();
+  const toggle = useToggleTaskStatus();
+  const [editOpen, setEditOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [confirmArchive, setConfirmArchive] = useState(false);
 
-  const doAction = (label: string) => toast(`${label} · próximamente`);
+  if (pl) {
+    return <AppShell><div className="rounded-2xl border-[1.5px] border-ink bg-white p-6">Cargando…</div></AppShell>;
+  }
+  if (!project) {
+    return (
+      <AppShell>
+        <div className="rounded-2xl border-[1.5px] border-ink bg-white p-6">
+          <h1 className="text-xl font-bold text-ink">Proyecto no encontrado</h1>
+          <Link to="/proyectos" className="mt-4 inline-flex text-sm font-semibold text-ink underline">Volver a Proyectos</Link>
+        </div>
+      </AppShell>
+    );
+  }
+
+  const area = areas.find((a) => a.id === project.area_id) ?? null;
+  const pct = projectProgressPct(tasks, project.id);
+  const activeTask = tasks.find((t) => t.status === "todo") ?? null;
+
+  const setStatus = async (status: "active" | "completed" | "archived") => {
+    await updateProject.mutateAsync({ id: project.id, status });
+    toast.success(status === "active" ? "Proyecto reactivado" : status === "completed" ? "Proyecto completado" : "Proyecto archivado");
+    if (status === "archived") navigate({ to: "/proyectos" });
+  };
 
   return (
     <AppShell>
       <div className="mb-4">
-        <Link
-          to="/proyectos"
-          className="press inline-flex items-center gap-2 rounded-full border-[1.5px] border-ink bg-white px-3 py-1.5 text-xs font-semibold text-ink"
-        >
+        <Link to="/proyectos" className="press inline-flex items-center gap-2 rounded-full border-[1.5px] border-ink bg-white px-3 py-1.5 text-xs font-semibold text-ink">
           <ArrowLeft className="h-3.5 w-3.5" /> Proyectos
         </Link>
       </div>
 
-      {/* Hero */}
-      <section
-        className="rounded-3xl border-[1.5px] border-ink p-6 md:p-8"
-        style={{ backgroundColor: area.color, viewTransitionName: `project-${project.id}` }}
-      >
+      <section className="rounded-3xl border-[1.5px] border-ink p-6 md:p-8" style={{ backgroundColor: areaColor(area), viewTransitionName: `project-${project.id}` }}>
         <div className="grid grid-cols-1 gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
           <div className="min-w-0">
             <div className="mb-3 flex items-center gap-2">
-              <AreaChip area={area} />
-              <StatusBadge>Activo</StatusBadge>
+              <span className="inline-flex items-center gap-1.5 rounded-full border-[1.5px] border-ink bg-white/70 px-2.5 py-1 text-xs font-semibold text-ink">
+                <AreaIconByName name={areaIconName(area)} className="h-3.5 w-3.5" /> {area?.name ?? "Sin área"}
+              </span>
+              <StatusBadge>{project.status === "active" ? "Activo" : project.status === "completed" ? "Completado" : "Archivado"}</StatusBadge>
             </div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-ink md:text-4xl">
-              {project.name}
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm text-ink/80 md:text-base">
-              {project.description}
-            </p>
-            <div className="mt-3 text-sm text-ink/70">
-              Horizonte: <span className="font-semibold text-ink">{fmtDate(project.targetDate)}</span>
-            </div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-ink md:text-4xl">{project.name}</h1>
+            {project.description ? <p className="mt-2 max-w-2xl text-sm text-ink/80 md:text-base">{project.description}</p> : null}
+            <div className="mt-3 text-sm text-ink/70">Horizonte: <span className="font-semibold text-ink">{fmtDate(project.target_date)}</span></div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => doAction("Editar")} className="press inline-flex items-center gap-2 rounded-full border-[1.5px] border-ink bg-white px-4 py-2 text-sm font-semibold text-ink">
+            <button onClick={() => setEditOpen(true)} className="press inline-flex items-center gap-2 rounded-full border-[1.5px] border-ink bg-white px-4 py-2 text-sm font-semibold text-ink">
               <Pencil className="h-4 w-4" /> Editar
             </button>
-            <button onClick={() => doAction("Añadir tarea")} className="press inline-flex items-center gap-2 rounded-full border-[1.5px] border-ink bg-ink px-4 py-2 text-sm font-semibold text-background">
+            <button onClick={() => setAddOpen(true)} className="press inline-flex items-center gap-2 rounded-full border-[1.5px] border-ink bg-ink px-4 py-2 text-sm font-semibold text-background">
               <Plus className="h-4 w-4" /> Añadir tarea
             </button>
-            <button onClick={() => doAction("Archivar")} className="press inline-flex items-center gap-2 rounded-full border-[1.5px] border-ink bg-white px-4 py-2 text-sm font-semibold text-ink">
-              <Archive className="h-4 w-4" /> Archivar
-            </button>
+            {project.status === "active" ? (
+              <>
+                <button onClick={() => setStatus("completed")} className="press inline-flex items-center gap-2 rounded-full border-[1.5px] border-ink bg-white px-4 py-2 text-sm font-semibold text-ink">
+                  <CheckCircle2 className="h-4 w-4" /> Completar
+                </button>
+                <button onClick={() => setConfirmArchive(true)} className="press inline-flex items-center gap-2 rounded-full border-[1.5px] border-ink bg-white px-4 py-2 text-sm font-semibold text-ink">
+                  <Archive className="h-4 w-4" /> Archivar
+                </button>
+              </>
+            ) : (
+              <button onClick={() => setStatus("active")} className="press inline-flex items-center gap-2 rounded-full border-[1.5px] border-ink bg-white px-4 py-2 text-sm font-semibold text-ink">
+                <RotateCcw className="h-4 w-4" /> Restaurar
+              </button>
+            )}
           </div>
         </div>
 
@@ -113,16 +125,14 @@ function ProjectOverview() {
           {activeTask ? (
             <div className="mt-4 flex items-center gap-3 rounded-xl border-[1.5px] border-ink bg-surface-muted p-3">
               <div className="grid h-8 w-8 place-items-center rounded-full border-[1.5px] border-ink bg-white">
-                <AreaIcon areaId={activeTask.areaId} className="h-4 w-4" />
+                <AreaIconByName name={areaIconName(area)} className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-ink/60">
-                  Siguiente tarea
-                </div>
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-ink/60">Siguiente tarea</div>
                 <div className="truncate text-sm font-semibold text-ink">{activeTask.title}</div>
               </div>
               <button
-                onClick={() => doAction("Completar")}
+                onClick={() => toggle.mutate({ id: activeTask.id, next: "done" })}
                 aria-label="Completar tarea"
                 className="press grid h-9 w-9 place-items-center rounded-full border-[1.5px] border-ink bg-white"
               >
@@ -133,19 +143,47 @@ function ProjectOverview() {
         </div>
       </section>
 
-      {/* Tree */}
       <section className="mt-8">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-2xl font-extrabold text-ink">Tareas</h2>
-          <button
-            onClick={() => doAction("Añadir tarea")}
-            className="press inline-flex items-center gap-2 rounded-full border-[1.5px] border-ink bg-white px-3 py-1.5 text-sm font-semibold text-ink"
-          >
+          <button onClick={() => setAddOpen(true)} className="press inline-flex items-center gap-2 rounded-full border-[1.5px] border-ink bg-white px-3 py-1.5 text-sm font-semibold text-ink">
             <Plus className="h-4 w-4" /> Añadir
           </button>
         </div>
-        <TaskTree tasks={rootTasks} />
+        {tl ? (
+          <div className="rounded-2xl border-[1.5px] border-ink bg-white p-6 text-sm text-text-secondary">Cargando tareas…</div>
+        ) : tasks.length === 0 ? (
+          <EmptyState
+            title="Este proyecto aún no tiene tareas"
+            description="Añade la primera tarea para empezar a avanzar."
+            action={
+              <button onClick={() => setAddOpen(true)} className="press inline-flex h-11 items-center gap-2 rounded-full border-[1.5px] border-ink bg-ink px-5 text-sm font-semibold text-background">
+                <Plus className="h-4 w-4" /> Añadir tarea
+              </button>
+            }
+          />
+        ) : (
+          <TaskTree tasks={tasks} projectId={project.id} />
+        )}
       </section>
+
+      <ProjectFormDialog open={editOpen} onOpenChange={setEditOpen} project={project} />
+      <TaskFormDialog open={addOpen} onOpenChange={setAddOpen} initialProjectId={project.id} initialAreaId={project.area_id} />
+
+      <AlertDialog open={confirmArchive} onOpenChange={setConfirmArchive}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archivar este proyecto</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se ocultará de la vista activa. Podrás restaurarlo más adelante. Sus tareas se conservan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => setStatus("archived")}>Archivar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }
