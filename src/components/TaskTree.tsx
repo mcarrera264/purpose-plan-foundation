@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { ChevronRight, Plus, MoreVertical, Archive, Pencil } from "lucide-react";
+import { ChevronRight, Plus, MoreVertical, Archive, Pencil, Sparkles } from "lucide-react";
 import { TaskRow } from "./TaskRow";
 import { taskChildren, useArchiveTask, type TaskRow as Task } from "@/lib/data";
 import { TaskFormDialog } from "./TaskFormDialog";
+import { AIPanel } from "./AIPanel";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 
