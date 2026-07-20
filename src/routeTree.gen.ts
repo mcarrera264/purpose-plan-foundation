@@ -13,6 +13,7 @@ import { Route as TareasRouteImport } from './routes/tareas'
 import { Route as ProyectosRouteImport } from './routes/proyectos'
 import { Route as ProgresoRouteImport } from './routes/progreso'
 import { Route as CalendarioRouteImport } from './routes/calendario'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProyectosProjectIdRouteImport } from './routes/proyectos.$projectId'
 
@@ -36,6 +37,11 @@ const CalendarioRoute = CalendarioRouteImport.update({
   path: '/calendario',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -49,6 +55,7 @@ const ProyectosProjectIdRoute = ProyectosProjectIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/calendario': typeof CalendarioRoute
   '/progreso': typeof ProgresoRoute
   '/proyectos': typeof ProyectosRouteWithChildren
@@ -57,6 +64,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/calendario': typeof CalendarioRoute
   '/progreso': typeof ProgresoRoute
   '/proyectos': typeof ProyectosRouteWithChildren
@@ -66,6 +74,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/calendario': typeof CalendarioRoute
   '/progreso': typeof ProgresoRoute
   '/proyectos': typeof ProyectosRouteWithChildren
@@ -76,6 +85,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth'
     | '/calendario'
     | '/progreso'
     | '/proyectos'
@@ -84,6 +94,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/auth'
     | '/calendario'
     | '/progreso'
     | '/proyectos'
@@ -92,6 +103,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/auth'
     | '/calendario'
     | '/progreso'
     | '/proyectos'
@@ -101,6 +113,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
   CalendarioRoute: typeof CalendarioRoute
   ProgresoRoute: typeof ProgresoRoute
   ProyectosRoute: typeof ProyectosRouteWithChildren
@@ -137,6 +150,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CalendarioRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -168,6 +188,7 @@ const ProyectosRouteWithChildren = ProyectosRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
   CalendarioRoute: CalendarioRoute,
   ProgresoRoute: ProgresoRoute,
   ProyectosRoute: ProyectosRouteWithChildren,

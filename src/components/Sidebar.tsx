@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, FolderKanban, ListChecks, CalendarDays, Trophy, Plus, User } from "lucide-react";
+import { Home, FolderKanban, ListChecks, CalendarDays, Trophy, Plus } from "lucide-react";
 import { CreateMenu } from "./CreateMenu";
+import { AccountMenu } from "./AccountMenu";
 
 const items = [
   { to: "/", label: "Inicio", icon: Home, exact: true },
@@ -55,14 +56,8 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="mt-4 flex items-center gap-3 rounded-2xl border-[1.5px] border-ink bg-white p-3">
-        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full border-[1.5px] border-ink bg-surface-muted">
-          <User className="h-4 w-4" />
-        </div>
-        <div className="min-w-0">
-          <div className="truncate text-sm font-semibold text-ink">Invitado</div>
-          <div className="truncate text-xs text-text-secondary">Perfil próximamente</div>
-        </div>
+      <div className="mt-4">
+        <AccountMenu />
       </div>
     </aside>
   );
