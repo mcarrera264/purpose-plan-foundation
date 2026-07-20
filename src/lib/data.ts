@@ -1,6 +1,4 @@
 // Central data-access layer (React Query) for Purpose Plan Phase 3.
-// All CRUD for areas, projects and tasks flows through this file so views
-// stay consistent and caches are invalidated in one place.
 import {
   useMutation,
   useQuery,
@@ -8,60 +6,20 @@ import {
   type UseQueryResult,
 } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { useAuth } from "@/lib/auth-context";
 
-// ---------- Types ----------
-export type ProjectStatus = "active" | "completed" | "archived";
-export type TaskStatus = "pending" | "in_progress" | "completed" | "archived";
+// ---------- Types (aligned to DB enums) ----------
+export type ProjectStatus = Database["public"]["Enums"]["project_status"]; // active|completed|archived
+export type TaskStatus = Database["public"]["Enums"]["task_status"]; // todo|done|archived
+export type TaskOrigin = Database["public"]["Enums"]["task_origin"]; // manual|ai
 
-export interface AreaRow {
-  id: string;
-  user_id: string;
-  name: string;
-  color: string | null;
-  icon: string | null;
-  is_system: boolean;
-  is_archived: boolean;
-  position: number;
-  system_key: string | null;
-}
-
-export interface ProjectRow {
-  id: string;
-  user_id: string;
-  area_id: string | null;
-  name: string;
-  description: string | null;
-  status: ProjectStatus;
-  start_date: string | null;
-  target_date: string | null;
-  estimated_duration: string | null;
-  completed_at: string | null;
-  archived_at: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface TaskRow {
-  id: string;
-  user_id: string;
-  project_id: string | null;
-  area_id: string | null;
-  parent_task_id: string | null;
-  depth: number;
-  title: string;
-  description: string | null;
-  status: TaskStatus;
-  scheduled_date: string | null;
-  scheduled_start: string | null;
-  scheduled_end: string | null;
-  position: number;
-  origin: "manual" | "ai" | "template";
-  completed_at: string | null;
-  archived_at: string | null;
-  created_at: string;
-  updated_at: string;
-}
+export type AreaRow = Database["public"]["Tables"]["areas"]["Row"];
+export type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
+export type TaskRow = Database["public"]["Tables"]["tasks"]["Row"];
+type TaskUpdate = Database["public"]["Tables"]["tasks"]["Update"];
+type ProjectUpdate = Database["public"]["Tables"]["projects"]["Update"];
+type AreaUpdate = Database["public"]["Tables"]["areas"]["Update"];
 
 // ---------- Query keys ----------
 export const qk = {
@@ -121,7 +79,7 @@ export function useUpdateArea() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { id: string; name?: string; color?: string; icon?: string }) => {
-      const patch: Record<string, unknown> = {};
+      const patch: AreaUpdate = {};
       if (input.name !== undefined) {
         const n = input.name.trim();
         if (!n) throw new Error("El nombre es obligatorio");
@@ -244,7 +202,7 @@ export function useUpdateProject() {
       target_date?: string | null;
       status?: ProjectStatus;
     }) => {
-      const patch: Record<string, unknown> = {};
+      const patch: ProjectUpdate = {};
       if (input.name !== undefined) {
         const n = input.name.trim();
         if (!n) throw new Error("El nombre es obligatorio");
@@ -267,11 +225,10 @@ export function useUpdateProject() {
       if (error) throw error;
       return data as ProjectRow;
     },
-    onSuccess: (row) => {
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["projects"] });
       qc.invalidateQueries({ queryKey: ["project"] });
       qc.invalidateQueries({ queryKey: ["tasks"] });
-      void row;
     },
   });
 }
@@ -332,20 +289,23 @@ export function useCreateTask() {
       const title = input.title.trim();
       if (!title) throw new Error("El título es obligatorio");
       if (!input.area_id && !input.parent_task_id) throw new Error("Selecciona un área");
-      const payload = {
-        user_id: user.id,
-        title,
-        area_id: input.area_id || null,
-        project_id: input.project_id || null,
-        parent_task_id: input.parent_task_id || null,
-        description: input.description?.trim() || null,
-        scheduled_date: input.scheduled_date || null,
-        scheduled_start: input.scheduled_start || null,
-        scheduled_end: input.scheduled_end || null,
-        status: "pending" as const,
-        origin: "manual" as const,
-      };
-      const { data, error } = await supabase.from("tasks").insert(payload).select().single();
+      const { data, error } = await supabase
+        .from("tasks")
+        .insert({
+          user_id: user.id,
+          title,
+          area_id: input.area_id || null,
+          project_id: input.project_id || null,
+          parent_task_id: input.parent_task_id || null,
+          description: input.description?.trim() || null,
+          scheduled_date: input.scheduled_date || null,
+          scheduled_start: input.scheduled_start || null,
+          scheduled_end: input.scheduled_end || null,
+          status: "todo",
+          origin: "manual",
+        })
+        .select()
+        .single();
       if (error) throw error;
       return data as TaskRow;
     },
@@ -358,10 +318,9 @@ export function useCreateTask() {
 export function useUpdateTask() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: Partial<TaskRow> & { id: string }) => {
+    mutationFn: async (input: TaskUpdate & { id: string }) => {
       const { id, ...rest } = input;
-      const patch: Record<string, unknown> = { ...rest };
-      const { data, error } = await supabase.from("tasks").update(patch).eq("id", id).select().single();
+      const { data, error } = await supabase.from("tasks").update(rest).eq("id", id).select().single();
       if (error) throw error;
       return data as TaskRow;
     },
@@ -373,14 +332,13 @@ export function useToggleTaskStatus() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, next }: { id: string; next: TaskStatus }) => {
-      const patch: Record<string, unknown> = { status: next };
-      if (next === "completed") patch.completed_at = new Date().toISOString();
-      if (next === "pending") patch.completed_at = null;
+      const patch: TaskUpdate = { status: next };
+      if (next === "done") patch.completed_at = new Date().toISOString();
+      if (next === "todo") patch.completed_at = null;
       if (next === "archived") patch.archived_at = new Date().toISOString();
       const { error } = await supabase.from("tasks").update(patch).eq("id", id);
       if (error) throw error;
     },
-    // Optimistic update
     onMutate: async ({ id, next }) => {
       await qc.cancelQueries({ queryKey: ["tasks"] });
       const snapshots = qc.getQueriesData<TaskRow[]>({ queryKey: ["tasks"] });
@@ -400,9 +358,9 @@ export function useArchiveTask() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, archived }: { id: string; archived: boolean }) => {
-      const patch = archived
-        ? { status: "archived" as TaskStatus, archived_at: new Date().toISOString() }
-        : { status: "pending" as TaskStatus, archived_at: null };
+      const patch: TaskUpdate = archived
+        ? { status: "archived", archived_at: new Date().toISOString() }
+        : { status: "todo", archived_at: null };
       const { error } = await supabase.from("tasks").update(patch).eq("id", id);
       if (error) throw error;
     },
@@ -422,7 +380,7 @@ export function pendingDescendants(tasks: TaskRow[], id: string): TaskRow[] {
   const walk = (pid: string) => {
     for (const t of tasks) {
       if (t.parent_task_id === pid) {
-        if (t.status !== "completed" && t.status !== "archived") out.push(t);
+        if (t.status !== "done" && t.status !== "archived") out.push(t);
         walk(t.id);
       }
     }
@@ -431,10 +389,9 @@ export function pendingDescendants(tasks: TaskRow[], id: string): TaskRow[] {
   return out;
 }
 export function projectProgressPct(tasks: TaskRow[], projectId: string) {
-  // Provisional: percentage of leaf tasks completed.
   const inProj = tasks.filter((t) => t.project_id === projectId && t.status !== "archived");
   const leaves = inProj.filter((t) => !inProj.some((c) => c.parent_task_id === t.id));
   if (leaves.length === 0) return 0;
-  const done = leaves.filter((l) => l.status === "completed").length;
+  const done = leaves.filter((l) => l.status === "done").length;
   return Math.round((done / leaves.length) * 100);
 }
