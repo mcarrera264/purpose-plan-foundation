@@ -337,117 +337,51 @@ export const acceptSuggestions = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
-    // 1) Load batch (RLS ensures ownership)
+    // Verify batch ownership up front (RLS also enforces).
     const { data: batch, error: bErr } = await supabase
-      .from("ai_suggestion_batches").select("*").eq("id", data.batchId).single();
+      .from("ai_suggestion_batches").select("id,user_id").eq("id", data.batchId).single();
     if (bErr || !batch) throw new Error("Lote no encontrado");
     if (batch.user_id !== userId) throw new Error("No autorizado");
 
-    // 2) Load suggestions requested
-    const ids = data.items.map((i) => i.id);
-    const { data: sugs, error: sErr } = await supabase
-      .from("ai_suggestions").select("*").in("id", ids).eq("batch_id", data.batchId);
-    if (sErr) throw new Error(sErr.message);
-    const sugById = new Map((sugs ?? []).map((s) => [s.id, s]));
-
-    // 3) Determine target project / parent / area / depth
-    let projectId: string | null = null;
-    let parentTaskId: string | null = null;
-    let areaId: string | null = null;
-    let depth = batch.target_depth ?? 0;
-
-    if (batch.capability === "generate_project_tasks") {
-      projectId = batch.project_id;
-      if (!projectId) throw new Error("Lote sin proyecto");
-      const { data: p } = await supabase.from("projects")
-        .select("id,area_id,status").eq("id", projectId).single();
-      if (!p) throw new Error("Proyecto no encontrado");
-      areaId = p.area_id;
-      depth = 0;
-    } else {
-      parentTaskId = batch.parent_task_id ?? batch.task_id;
-      if (!parentTaskId) throw new Error("Lote sin tarea padre");
-      const { data: t } = await supabase.from("tasks")
-        .select("id,project_id,area_id,depth").eq("id", parentTaskId).single();
-      if (!t) throw new Error("Tarea padre no encontrada");
-      if (t.depth >= 2) throw new Error("Profundidad máxima alcanzada");
-      projectId = t.project_id;
-      areaId = t.area_id;
-      depth = t.depth + 1;
-    }
-
-    // 4) Duplicate re-check: fetch current sibling titles
-    let siblingTitles: string[] = [];
-    if (parentTaskId) {
-      const { data: rows } = await supabase.from("tasks")
-        .select("title").eq("parent_task_id", parentTaskId).neq("status", "archived");
-      siblingTitles = (rows ?? []).map((r) => r.title);
-    } else if (projectId) {
-      const { data: rows } = await supabase.from("tasks")
-        .select("title").eq("project_id", projectId).is("parent_task_id", null).neq("status", "archived");
-      siblingTitles = (rows ?? []).map((r) => r.title);
-    }
-    const siblingSet = new Set(siblingTitles.map(normalizeTitle));
-
-    // 5) Process each requested item
-    type ItemResult = { id: string; ok: boolean; taskId?: string; error?: string };
+    type ItemResult = { id: string; ok: boolean; taskId?: string; alreadyAccepted?: boolean; error?: string };
     const results: ItemResult[] = [];
 
+    // Each item is delegated to an atomic SECURITY DEFINER RPC that:
+    // - row-locks the suggestion (FOR UPDATE),
+    // - short-circuits if already accepted (returns existing task),
+    // - re-checks duplicates against live sibling titles,
+    // - inserts task + updates suggestion in a single transaction.
+    // Safe against double-click, multi-tab, retries, and concurrent requests.
     for (const item of data.items) {
-      const sug = sugById.get(item.id);
-      if (!sug) { results.push({ id: item.id, ok: false, error: "not_found" }); continue; }
-      // Idempotency: already accepted → return existing task id
-      if (sug.status === "accepted" && sug.result_task_id) {
-        results.push({ id: item.id, ok: true, taskId: sug.result_task_id });
+      // Call RPC untyped: fresh signature not in generated types until next codegen.
+      const client = supabase as unknown as {
+        rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
+      };
+      const { data: rpcData, error } = await client.rpc("accept_ai_suggestion", {
+        _suggestion_id: item.id,
+        _edited_title: item.editedTitle ?? null,
+        _edited_description: item.editedDescription ?? null,
+        _edited_estimate: item.editedEstimate ?? null,
+      });
+      if (error) {
+        const msg = error.message ?? "";
+        let code = "insert_failed";
+        if (/rejected/i.test(msg)) code = "rejected";
+        else if (/empty title/i.test(msg)) code = "empty_title";
+        else if (/max depth/i.test(msg)) code = "max_depth";
+        else if (/forbidden|not authenticated/i.test(msg)) code = "forbidden";
+        else if (/not found/i.test(msg)) code = "not_found";
+        results.push({ id: item.id, ok: false, error: code });
         continue;
       }
-      if (sug.status === "rejected") {
-        results.push({ id: item.id, ok: false, error: "rejected" });
+      const row = Array.isArray(rpcData) ? (rpcData[0] as { task_id: string | null; already_accepted: boolean; duplicate: boolean } | undefined) : undefined;
+      if (!row) { results.push({ id: item.id, ok: false, error: "no_result" }); continue; }
+      if (row.duplicate) { results.push({ id: item.id, ok: false, error: "duplicate" }); continue; }
+      if (row.task_id) {
+        results.push({ id: item.id, ok: true, taskId: row.task_id, alreadyAccepted: row.already_accepted });
         continue;
       }
-      const finalTitle = (item.editedTitle ?? sug.title).trim();
-      if (!finalTitle) { results.push({ id: item.id, ok: false, error: "empty_title" }); continue; }
-      const norm = normalizeTitle(finalTitle);
-      if (siblingSet.has(norm)) {
-        results.push({ id: item.id, ok: false, error: "duplicate" });
-        continue;
-      }
-      const finalDesc = item.editedDescription !== undefined ? item.editedDescription : sug.description;
-      const finalEstimate = item.editedEstimate !== undefined ? item.editedEstimate : sug.estimate;
-
-      // Insert task
-      const { data: taskRow, error: tErr } = await supabase.from("tasks").insert({
-        user_id: userId,
-        title: finalTitle,
-        description: finalDesc ?? (finalEstimate ? `Estimación: ${finalEstimate}` : null),
-        area_id: areaId,
-        project_id: projectId,
-        parent_task_id: parentTaskId,
-        status: "todo",
-        origin: "ai",
-      }).select("id").single();
-      if (tErr || !taskRow) {
-        results.push({ id: item.id, ok: false, error: tErr?.message ?? "insert_failed" });
-        continue;
-      }
-
-      // Link suggestion → task (result_task_id has UNIQUE constraint → idempotent)
-      const { error: uErr } = await supabase.from("ai_suggestions").update({
-        status: "accepted",
-        accepted_at: new Date().toISOString(),
-        result_task_id: taskRow.id,
-        edited_title: item.editedTitle ?? null,
-        edited_description: item.editedDescription ?? null,
-      }).eq("id", sug.id).is("result_task_id", null);
-      if (uErr) {
-        // Rollback the inserted task to avoid orphan
-        await supabase.from("tasks").delete().eq("id", taskRow.id);
-        results.push({ id: item.id, ok: false, error: "link_conflict" });
-        continue;
-      }
-
-      siblingSet.add(norm);
-      results.push({ id: item.id, ok: true, taskId: taskRow.id });
+      results.push({ id: item.id, ok: false, error: "unknown" });
     }
 
     return { results };
@@ -462,5 +396,20 @@ export const rejectSuggestion = createServerFn({ method: "POST" })
     await supabase.from("ai_suggestions")
       .update({ status: "rejected", rejected_at: new Date().toISOString() })
       .eq("id", data.id).eq("status", "proposed");
+    return { ok: true };
+  });
+
+// ------- deleteMyAccountData (Fase 6 §16) -------
+// Wipes all app-level data for the current user. Auth identity is not
+// removed here; client signs out after a successful call.
+export const deleteMyAccountData = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase } = context;
+    const client = supabase as unknown as {
+      rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ error: { message: string } | null }>;
+    };
+    const { error } = await client.rpc("delete_my_account_data", {});
+    if (error) throw new Error(error.message);
     return { ok: true };
   });
