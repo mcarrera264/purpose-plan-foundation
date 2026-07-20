@@ -20,9 +20,9 @@ const AuthContext = createContext<AuthState>({
 
 async function bootstrapUser(displayName?: string | null) {
   try {
-    const { error } = await supabase.rpc("initialize_current_user", {
-      p_display_name: displayName ?? null,
-    });
+    const args: { p_display_name?: string } = {};
+    if (displayName) args.p_display_name = displayName;
+    const { error } = await supabase.rpc("initialize_current_user", args);
     if (error) console.error("initialize_current_user", error.message);
   } catch (e) {
     console.error(e);
