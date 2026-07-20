@@ -174,6 +174,7 @@ function ProjectOverview() {
 
       <ProjectFormDialog open={editOpen} onOpenChange={setEditOpen} project={project} />
       <TaskFormDialog open={addOpen} onOpenChange={setAddOpen} initialProjectId={project.id} initialAreaId={project.area_id} />
+      <AIPanel open={aiOpen} onOpenChange={setAiOpen} scope={{ kind: "project", projectId: project.id, projectName: project.name }} />
 
       <AlertDialog open={confirmArchive} onOpenChange={setConfirmArchive}>
         <AlertDialogContent>
