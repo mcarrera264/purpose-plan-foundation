@@ -328,6 +328,61 @@ export function useUpdateTask() {
   });
 }
 
+/**
+ * Reschedule a task with optimistic UI and rollback.
+ * Pass null values to clear the schedule.
+ */
+export function useRescheduleTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      id: string;
+      scheduled_date: string | null;
+      scheduled_start: string | null;
+      scheduled_end: string | null;
+    }) => {
+      if (input.scheduled_start && input.scheduled_end && input.scheduled_end < input.scheduled_start) {
+        throw new Error("La hora final no puede ser anterior a la hora inicial");
+      }
+      if (!input.scheduled_date && (input.scheduled_start || input.scheduled_end)) {
+        throw new Error("Una tarea no puede tener hora sin fecha");
+      }
+      const { error } = await supabase
+        .from("tasks")
+        .update({
+          scheduled_date: input.scheduled_date,
+          scheduled_start: input.scheduled_start,
+          scheduled_end: input.scheduled_end,
+        })
+        .eq("id", input.id);
+      if (error) throw error;
+    },
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: ["tasks"] });
+      const snapshots = qc.getQueriesData<TaskRow[]>({ queryKey: ["tasks"] });
+      qc.setQueriesData<TaskRow[]>({ queryKey: ["tasks"] }, (list) =>
+        list
+          ? list.map((t) =>
+              t.id === input.id
+                ? {
+                    ...t,
+                    scheduled_date: input.scheduled_date,
+                    scheduled_start: input.scheduled_start,
+                    scheduled_end: input.scheduled_end,
+                  }
+                : t,
+            )
+          : list,
+      );
+      return { snapshots };
+    },
+    onError: (_e, _v, ctx) => {
+      ctx?.snapshots?.forEach(([key, data]) => qc.setQueryData(key, data));
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
+  });
+}
+
 export function useToggleTaskStatus() {
   const qc = useQueryClient();
   return useMutation({
