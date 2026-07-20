@@ -8,6 +8,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { EmptyState } from "@/components/EmptyState";
 import { TaskFormDialog } from "@/components/TaskFormDialog";
 import { ProjectFormDialog } from "@/components/ProjectFormDialog";
+import { AIPanel } from "@/components/AIPanel";
 import {
   useAreas,
   useProject,
@@ -16,7 +17,7 @@ import {
   useUpdateProject,
   projectProgressPct,
 } from "@/lib/data";
-import { ArrowLeft, Archive, Pencil, Plus, Check, RotateCcw, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Archive, Pencil, Plus, Check, RotateCcw, CheckCircle2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
