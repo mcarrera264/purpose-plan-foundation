@@ -51,7 +51,7 @@ function fmtDate(iso: string) {
 
 function ProjectOverview() {
   useTasksVersion();
-  const { project } = Route.useLoaderData();
+  const { project } = Route.useLoaderData() as { project: import("@/lib/mock-data").Project };
   const area = AREAS[project.areaId as keyof typeof AREAS];
   const rootTasks = getRootProjectTasks(project.id);
   const pct = projectProgress(project.id);
