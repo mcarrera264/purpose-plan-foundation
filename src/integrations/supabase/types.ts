@@ -424,6 +424,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_ai_suggestion: {
+        Args: {
+          _edited_description?: string
+          _edited_estimate?: string
+          _edited_title?: string
+          _suggestion_id: string
+        }
+        Returns: {
+          already_accepted: boolean
+          duplicate: boolean
+          task_id: string
+        }[]
+      }
+      delete_my_account_data: { Args: never; Returns: undefined }
       initialize_current_user: {
         Args: { p_display_name?: string }
         Returns: undefined
