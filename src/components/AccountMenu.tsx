@@ -1,15 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { User, LogOut, Save, X } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { User, LogOut, Save, X, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
+import { deleteMyAccountData } from "@/lib/ai.functions";
 
 export function AccountMenu() {
   const { user, isGuest } = useAuth();
   const navigate = useNavigate();
   const [saveOpen, setSaveOpen] = useState(false);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const deleteFn = useServerFn(deleteMyAccountData);
 
   const displayName =
     (user?.user_metadata?.display_name as string | undefined) ??
@@ -20,6 +25,19 @@ export function AccountMenu() {
   async function signOut() {
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
+  }
+
+  async function deleteAccount() {
+    setDeleting(true);
+    try {
+      await deleteFn();
+      toast.success("Tu información se eliminó. Cerrando sesión…");
+      await supabase.auth.signOut();
+      navigate({ to: "/auth", replace: true });
+    } catch (e) {
+      toast.error("No pudimos eliminar tus datos. Intenta de nuevo.");
+      setDeleting(false);
+    }
   }
 
   return (
