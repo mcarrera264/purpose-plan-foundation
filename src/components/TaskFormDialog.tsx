@@ -15,11 +15,22 @@ interface Props {
   initialProjectId?: string | null;
   initialParentId?: string | null;
   initialAreaId?: string | null;
+  initialDate?: string | null;
+  initialStartTime?: string | null;
   // If provided we're editing
   task?: TaskRow | null;
 }
 
-export function TaskFormDialog({ open, onOpenChange, initialProjectId, initialParentId, initialAreaId, task }: Props) {
+export function TaskFormDialog({
+  open,
+  onOpenChange,
+  initialProjectId,
+  initialParentId,
+  initialAreaId,
+  initialDate,
+  initialStartTime,
+  task,
+}: Props) {
   const { data: areas = [] } = useAreas();
   const { data: projects = [] } = useProjects({ status: "active" });
   const create = useCreateTask();
@@ -42,19 +53,19 @@ export function TaskFormDialog({ open, onOpenChange, initialProjectId, initialPa
       setAreaId(task.area_id ?? "");
       setProjectId(task.project_id ?? "");
       setDate(task.scheduled_date ?? "");
-      setStartTime(task.scheduled_start ? new Date(task.scheduled_start).toISOString().slice(11, 16) : "");
-      setEndTime(task.scheduled_end ? new Date(task.scheduled_end).toISOString().slice(11, 16) : "");
+      setStartTime(task.scheduled_start ? new Date(task.scheduled_start).toTimeString().slice(0, 5) : "");
+      setEndTime(task.scheduled_end ? new Date(task.scheduled_end).toTimeString().slice(0, 5) : "");
     } else {
       setTitle("");
       setDescription("");
       setAreaId(initialAreaId ?? areas[0]?.id ?? "");
       setProjectId(initialProjectId ?? "");
-      setDate("");
-      setStartTime("");
+      setDate(initialDate ?? "");
+      setStartTime(initialStartTime ?? "");
       setEndTime("");
     }
     setError(null);
-  }, [open, task, initialAreaId, initialProjectId, areas]);
+  }, [open, task, initialAreaId, initialProjectId, initialDate, initialStartTime, areas]);
 
   const isEdit = !!task;
   const saving = create.isPending || update.isPending;
