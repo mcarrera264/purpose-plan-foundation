@@ -81,10 +81,46 @@ export function AccountMenu() {
           <LogOut className="h-3.5 w-3.5" />
           Cerrar sesión
         </button>
+
+        {!isGuest && (
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(true)}
+            className="press inline-flex h-9 w-full items-center justify-center gap-2 rounded-full border-[1.5px] border-transparent text-xs font-medium text-ink/60 hover:border-red-500 hover:text-red-600"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Eliminar mi cuenta
+          </button>
+        )}
       </div>
 
       {saveOpen && <SaveAccountDialog onClose={() => setSaveOpen(false)} />}
       {confirmSignOut && (
+        <ConfirmDialog
+          title="¿Cerrar sesión de invitado?"
+          description="Perderás el acceso a los datos creados como invitado en este dispositivo. Puedes guardar tu cuenta antes de cerrar sesión."
+          confirmLabel="Cerrar sesión"
+          onConfirm={async () => {
+            setConfirmSignOut(false);
+            await signOut();
+          }}
+          onCancel={() => setConfirmSignOut(false)}
+          onSaveInstead={() => {
+            setConfirmSignOut(false);
+            setSaveOpen(true);
+          }}
+        />
+      )}
+      {confirmDelete && (
+        <ConfirmDialog
+          title="¿Eliminar toda tu información?"
+          description="Se borrarán tus áreas, proyectos, tareas y sugerencias de IA. Esta acción no se puede deshacer."
+          confirmLabel={deleting ? "Eliminando…" : "Sí, eliminar todo"}
+          onConfirm={() => { setConfirmDelete(false); void deleteAccount(); }}
+          onCancel={() => setConfirmDelete(false)}
+        />
+      )}
+    </>
         <ConfirmDialog
           title="¿Cerrar sesión de invitado?"
           description="Perderás el acceso a los datos creados como invitado en este dispositivo. Puedes guardar tu cuenta antes de cerrar sesión."
