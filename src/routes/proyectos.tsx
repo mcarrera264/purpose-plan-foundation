@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { PageHeader } from "@/components/PageHeader";
-import { ProjectCard } from "@/components/ProjectCard";
+import { ProjectGrid } from "@/components/ProjectGrid";
 import { SearchAndFilter } from "@/components/SearchAndFilter";
 import { EmptyState } from "@/components/EmptyState";
 import { SkeletonCard } from "@/components/SkeletonCard";
@@ -99,9 +99,8 @@ function ProjectsPage() {
           }
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filtered.map((p) => <ProjectCard key={p.id} project={p} />)}
-        </div>
+        <ProjectGrid projects={filtered} />
+
       )}
     </AppShell>
   );

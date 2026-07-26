@@ -53,13 +53,22 @@ function TasksPage() {
     [tasks, query, areas],
   );
 
+  // Only tasks whose parent is not visible act as branch roots; children are
+  // rendered nested under them with indentation.
+  const visibleIds = useMemo(() => new Set(filtered.map((t) => t.id)), [filtered]);
+  const roots = useMemo(
+    () => filtered.filter((t) => !t.parent_task_id || !visibleIds.has(t.parent_task_id)),
+    [filtered, visibleIds],
+  );
+
   const groups: { label: string; tasks: Task[] }[] = [
-    { label: "Vencidas", tasks: filtered.filter((t) => t.scheduled_date && t.scheduled_date < TODAY && t.status !== "done") },
-    { label: "Hoy", tasks: filtered.filter((t) => t.scheduled_date === TODAY) },
-    { label: "Mañana", tasks: filtered.filter((t) => t.scheduled_date === TOMORROW) },
-    { label: "Esta semana", tasks: filtered.filter((t) => t.scheduled_date && t.scheduled_date > TOMORROW && t.scheduled_date <= eow) },
-    { label: "Sin programar", tasks: filtered.filter((t) => !t.scheduled_date) },
+    { label: "Vencidas", tasks: roots.filter((t) => t.scheduled_date && t.scheduled_date < TODAY && t.status !== "done") },
+    { label: "Hoy", tasks: roots.filter((t) => t.scheduled_date === TODAY) },
+    { label: "Mañana", tasks: roots.filter((t) => t.scheduled_date === TOMORROW) },
+    { label: "Esta semana", tasks: roots.filter((t) => t.scheduled_date && t.scheduled_date > TOMORROW && t.scheduled_date <= eow) },
+    { label: "Sin programar", tasks: roots.filter((t) => !t.scheduled_date) },
   ];
+
 
   return (
     <AppShell>
@@ -116,8 +125,11 @@ function TasksPage() {
                   <span className="text-xs font-semibold text-text-secondary">{g.tasks.length}</span>
                 </div>
                 <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                  {g.tasks.map((t) => <TaskRow key={t.id} task={t} />)}
+                  {g.tasks.map((t) => (
+                    <TaskBranch key={t.id} task={t} all={filtered} level={0} />
+                  ))}
                 </div>
+
               </section>
             ),
           )}
@@ -126,3 +138,17 @@ function TasksPage() {
     </AppShell>
   );
 }
+
+/** Renders a task and its visible descendants with progressive indentation. */
+function TaskBranch({ task, all, level }: { task: Task; all: Task[]; level: number }) {
+  const children = all.filter((t) => t.parent_task_id === task.id);
+  return (
+    <div className="flex flex-col gap-2">
+      <TaskRow task={task} indent={level} />
+      {children.map((c) => (
+        <TaskBranch key={c.id} task={c} all={all} level={level + 1} />
+      ))}
+    </div>
+  );
+}
+
