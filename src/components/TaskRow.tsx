@@ -102,7 +102,21 @@ export function TaskRow({
             ) : null}
           </div>
         </div>
+
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setEditOpen(true);
+          }}
+          aria-label={`Editar tarea ${task.title}`}
+          title="Editar tarea"
+          className="press grid h-9 w-9 shrink-0 place-items-center rounded-full border-[1.5px] border-ink bg-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
+        >
+          <Pencil className="h-4 w-4" />
+        </button>
       </div>
+
 
       {expanded && canDecompose ? (
         <div
