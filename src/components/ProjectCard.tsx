@@ -95,12 +95,9 @@ export function ProjectCard({
               Este proyecto aún no tiene tareas.
             </div>
           ) : (
-            <div className="flex flex-col gap-2">
-              {rootTasks.map((t) => (
-                <TaskRow key={t.id} task={t} showProject={false} />
-              ))}
-            </div>
+            <TaskTree tasks={projectTasks} projectId={project.id} />
           )}
+
         </div>
       </CollapsibleContent>
     </Collapsible>
