@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { PageHeader } from "@/components/PageHeader";
-import { ProjectCard } from "@/components/ProjectCard";
+import { ProjectGrid } from "@/components/ProjectGrid";
 import { TaskRow } from "@/components/TaskRow";
 import { ProgressBar, SegmentedProgressBar } from "@/components/ProgressBar";
 import { CreateMenu } from "@/components/CreateMenu";
@@ -123,9 +123,11 @@ function Home() {
             ) : projects.length === 0 ? (
               <EmptyState title="Aún no tienes proyectos" description="Crea tu primer proyecto para empezar a organizar tus objetivos." />
             ) : (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                {projects.slice(0, 4).map((p) => <ProjectCard key={p.id} project={p} />)}
-              </div>
+              <ProjectGrid
+                projects={projects.slice(0, 4)}
+                gridClassName="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
+              />
+
             )}
           </section>
 
