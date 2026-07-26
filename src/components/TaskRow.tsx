@@ -155,6 +155,9 @@ export function TaskRow({
         onOpenChange={setAiOpen}
         scope={{ kind: "task", taskId: task.id, taskTitle: task.title }}
       />
+
+      <TaskFormDialog open={editOpen} onOpenChange={setEditOpen} task={task} />
+
     </div>
   );
 }
