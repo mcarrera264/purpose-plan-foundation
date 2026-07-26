@@ -125,8 +125,11 @@ function TasksPage() {
                   <span className="text-xs font-semibold text-text-secondary">{g.tasks.length}</span>
                 </div>
                 <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                  {g.tasks.map((t) => <TaskRow key={t.id} task={t} />)}
+                  {g.tasks.map((t) => (
+                    <TaskBranch key={t.id} task={t} all={filtered} level={0} />
+                  ))}
                 </div>
+
               </section>
             ),
           )}
