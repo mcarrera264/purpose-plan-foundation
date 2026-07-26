@@ -4,7 +4,7 @@ import { ChevronDown, ArrowRight } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { areaColor, areaIconName, AreaIconByName } from "@/lib/area-visuals";
 import { ProgressBar } from "./ProgressBar";
-import { TaskRow } from "./TaskRow";
+import { TaskTree } from "./TaskTree";
 import { useAreas, useTasks, projectProgressPct, type ProjectRow } from "@/lib/data";
 
 function formatDate(iso: string | null) {
@@ -12,8 +12,18 @@ function formatDate(iso: string | null) {
   return new Date(iso).toLocaleDateString("es-ES", { day: "numeric", month: "short" });
 }
 
-export function ProjectCard({ project }: { project: ProjectRow }) {
-  const [open, setOpen] = useState(false);
+export function ProjectCard({
+  project,
+  open: openProp,
+  onOpenChange,
+}: {
+  project: ProjectRow;
+  open?: boolean;
+  onOpenChange?: (v: boolean) => void;
+}) {
+  const [openState, setOpenState] = useState(false);
+  const open = openProp ?? openState;
+  const setOpen = (v: boolean) => (onOpenChange ? onOpenChange(v) : setOpenState(v));
   const { data: areas = [] } = useAreas(true);
   const { data: tasks = [] } = useTasks();
   const area = areas.find((a) => a.id === project.area_id) ?? null;
@@ -30,6 +40,7 @@ export function ProjectCard({ project }: { project: ProjectRow }) {
       className="group rounded-2xl border-[1.5px] border-ink transition"
       style={{ backgroundColor: color, viewTransitionName: `project-${project.id}` }}
     >
+
       <CollapsibleTrigger
         className="press w-full rounded-2xl p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         aria-label={`${project.name} — ${pct}% completado. ${open ? "Ocultar" : "Ver"} tareas`}
