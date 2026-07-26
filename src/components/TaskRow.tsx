@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Check, Clock, Sparkles } from "lucide-react";
+import { Check, Clock, Pencil, Sparkles } from "lucide-react";
 import { AreaIconByName, areaColor, areaIconName } from "@/lib/area-visuals";
 import { useAreas, useProjects, useToggleTaskStatus, type TaskRow as Task } from "@/lib/data";
 import { AIPanel } from "@/components/AIPanel";
+import { TaskFormDialog } from "@/components/TaskFormDialog";
 
 function formatWhen(date: string | null, start: string | null) {
   if (!date) return "Sin programar";
