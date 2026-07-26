@@ -35,6 +35,7 @@ export function TaskRow({
 
   const [expanded, setExpanded] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const completed = task.status === "done";
   const archived = task.status === "archived";
