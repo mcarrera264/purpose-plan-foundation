@@ -53,13 +53,22 @@ function TasksPage() {
     [tasks, query, areas],
   );
 
+  // Only tasks whose parent is not visible act as branch roots; children are
+  // rendered nested under them with indentation.
+  const visibleIds = useMemo(() => new Set(filtered.map((t) => t.id)), [filtered]);
+  const roots = useMemo(
+    () => filtered.filter((t) => !t.parent_task_id || !visibleIds.has(t.parent_task_id)),
+    [filtered, visibleIds],
+  );
+
   const groups: { label: string; tasks: Task[] }[] = [
-    { label: "Vencidas", tasks: filtered.filter((t) => t.scheduled_date && t.scheduled_date < TODAY && t.status !== "done") },
-    { label: "Hoy", tasks: filtered.filter((t) => t.scheduled_date === TODAY) },
-    { label: "Mañana", tasks: filtered.filter((t) => t.scheduled_date === TOMORROW) },
-    { label: "Esta semana", tasks: filtered.filter((t) => t.scheduled_date && t.scheduled_date > TOMORROW && t.scheduled_date <= eow) },
-    { label: "Sin programar", tasks: filtered.filter((t) => !t.scheduled_date) },
+    { label: "Vencidas", tasks: roots.filter((t) => t.scheduled_date && t.scheduled_date < TODAY && t.status !== "done") },
+    { label: "Hoy", tasks: roots.filter((t) => t.scheduled_date === TODAY) },
+    { label: "Mañana", tasks: roots.filter((t) => t.scheduled_date === TOMORROW) },
+    { label: "Esta semana", tasks: roots.filter((t) => t.scheduled_date && t.scheduled_date > TOMORROW && t.scheduled_date <= eow) },
+    { label: "Sin programar", tasks: roots.filter((t) => !t.scheduled_date) },
   ];
+
 
   return (
     <AppShell>
