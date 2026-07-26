@@ -138,3 +138,17 @@ function TasksPage() {
     </AppShell>
   );
 }
+
+/** Renders a task and its visible descendants with progressive indentation. */
+function TaskBranch({ task, all, level }: { task: Task; all: Task[]; level: number }) {
+  const children = all.filter((t) => t.parent_task_id === task.id);
+  return (
+    <div className="flex flex-col gap-2">
+      <TaskRow task={task} indent={level} />
+      {children.map((c) => (
+        <TaskBranch key={c.id} task={c} all={all} level={level + 1} />
+      ))}
+    </div>
+  );
+}
+
