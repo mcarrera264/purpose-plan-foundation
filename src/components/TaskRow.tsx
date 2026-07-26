@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Check, Clock, Sparkles } from "lucide-react";
+import { Check, Clock, Pencil, Sparkles } from "lucide-react";
 import { AreaIconByName, areaColor, areaIconName } from "@/lib/area-visuals";
 import { useAreas, useProjects, useToggleTaskStatus, type TaskRow as Task } from "@/lib/data";
 import { AIPanel } from "@/components/AIPanel";
+import { TaskFormDialog } from "@/components/TaskFormDialog";
 
 function formatWhen(date: string | null, start: string | null) {
   if (!date) return "Sin programar";
@@ -34,6 +35,7 @@ export function TaskRow({
 
   const [expanded, setExpanded] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const completed = task.status === "done";
   const archived = task.status === "archived";
@@ -100,7 +102,21 @@ export function TaskRow({
             ) : null}
           </div>
         </div>
+
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setEditOpen(true);
+          }}
+          aria-label={`Editar tarea ${task.title}`}
+          title="Editar tarea"
+          className="press grid h-9 w-9 shrink-0 place-items-center rounded-full border-[1.5px] border-ink bg-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
+        >
+          <Pencil className="h-4 w-4" />
+        </button>
       </div>
+
 
       {expanded && canDecompose ? (
         <div
@@ -139,6 +155,9 @@ export function TaskRow({
         onOpenChange={setAiOpen}
         scope={{ kind: "task", taskId: task.id, taskTitle: task.title }}
       />
+
+      <TaskFormDialog open={editOpen} onOpenChange={setEditOpen} task={task} />
+
     </div>
   );
 }
